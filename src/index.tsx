@@ -15,7 +15,7 @@ if (params.get('__render__') !== '1') {
   // link the history used in our app to url-query so it can update the URL with it.
   configureUrlQuery({ history })
 
-  ReactDOM.render(<App />, document.getElementById('root') as HTMLElement)
+  ReactDOM.render(<App />, document.getElementById('avatar-root') as HTMLElement)
   registerServiceWorker()
   // server rendering mode
 } else {

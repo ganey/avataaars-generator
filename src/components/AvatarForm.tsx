@@ -9,51 +9,6 @@ import {
   FormGroup
 } from 'react-bootstrap'
 
-interface SelectProps {
-  controlId: string
-  label: string
-  value: string
-  onChange?: (value: string) => void
-}
-
-// ref: https://stackoverflow.com/a/1714899/25077
-const serializeQuery = function (obj: any) {
-  const str = []
-  for (const p in obj) {
-    if (obj.hasOwnProperty(p)) {
-      str.push(encodeURIComponent(p) + '=' + encodeURIComponent(obj[p]))
-    }
-  }
-  return str.join('&')
-}
-
-class OptionSelect extends React.Component<SelectProps> {
-  render () {
-    const { controlId, label, value, children } = this.props
-    return (
-      <FormGroup className='row' controlId={controlId}>
-        <Col componentClass={ControlLabel} sm={3}>
-          {label}
-        </Col>
-        <Col sm={9}>
-          <FormControl
-            componentClass='select'
-            value={value}
-            onChange={this.onChange}>
-            {children}
-          </FormControl>
-        </Col>
-      </FormGroup>
-    )
-  }
-
-  private onChange = (event: React.FormEvent<FormControl>) => {
-    if (this.props.onChange) {
-      this.props.onChange(((event.target as any) as HTMLSelectElement).value)
-    }
-  }
-}
-
 export interface Props {
   avatarStyle: AvatarStyle
   optionContext: OptionContext
@@ -67,40 +22,27 @@ export interface Props {
 }
 
 export default class AvatarForm extends React.Component<Props> {
-  private onChangeCache: Array<(value: string) => void> = []
 
   componentWillMount () {
     const { optionContext } = this.props
     optionContext.addStateChangeListener(() => {
       this.forceUpdate()
     })
-    this.onChangeCache = optionContext.options.map(option =>
-      this.onChange.bind(this, option)
-    )
   }
 
   render () {
-    const { optionContext, avatarStyle, displayingImg, displayingCode } = this.props
+    const { optionContext, avatarStyle, displayingImg, displayingCode } = this.props;
     const selects = optionContext.options.map((option, index) => {
       const optionState = optionContext.getOptionState(option.key)!
       if (optionState.available <= 0) {
         return null
       }
-      const selectOptions = optionState.options.map(type => (
-        <option key={type} value={type}>
-          {type}
-        </option>
-      ))
-      const value = optionContext.getValue(option.key)!
+      //these are the left / right arrows for each available option
       return (
-        <OptionSelect
-          key={option.key}
-          controlId={option.key}
-          label={option.label}
-          value={value}
-          onChange={this.onChangeCache[index]}>
-          {selectOptions}
-        </OptionSelect>
+        <div>
+          <div className="selektor selektor-left" id={'left-' + option.key} onClick={(e) => this.changeLeft(e, option)}>LEFT</div>
+          <div className="selektor selektor-right" id={'right-'+option.key} onClick={(e) => this.changeRight(e, option)}>RIGHT</div>
+        </div>
       )
     })
     const labelCol = 3
@@ -139,17 +81,6 @@ export default class AvatarForm extends React.Component<Props> {
         {selects}
         <FormGroup className='row'>
           <Col
-            className={`offset-sm-${labelCol}`}
-            smOffset={labelCol}
-            sm={inputCol}>
-            More options coming soon,{' '}
-            <a href='http://eepurl.com/c_7fN9' target='_blank'>
-              subscribe for updates
-            </a>
-          </Col>
-        </FormGroup>
-        <FormGroup className='row'>
-          <Col
             className={'offset-sm-' + labelCol}
             smOffset={labelCol}
             sm={inputCol}>
@@ -179,28 +110,58 @@ export default class AvatarForm extends React.Component<Props> {
               <i className='fa fa-code' />{' '}
               {displayingImg ? 'Hide <img>' : 'Show <img>'}
             </Button>
-            <div style={{ marginTop: '10px' }}>
-              <iframe
-                src={
-                  'https://platform.twitter.com/widgets/tweet_button.html?' +
-                  serializeQuery({
-                    text: 'I just created my avataaars here 😆',
-                    url: document.location.href,
-                    hashtags: 'avataaars,avatar',
-                    size: 'l',
-                    lang: 'en'
-                  })
-                }
-                width='140'
-                height='28'
-                title='Twitter Tweet Button'
-                style={{ border: 0, overflow: 'hidden' }}
-              />
-            </div>
           </Col>
         </FormGroup>
       </Form>
     )
+  }
+
+  private changeRight(e: any, avatarOption: Option) {
+    const { optionContext} = this.props;
+
+    const optionState = optionContext.getOptionState(avatarOption.key)!;
+    if (optionState.available <= 0) {
+      return
+    }
+
+    let newIndex = -1
+    let currentValue = optionContext.getValue(avatarOption.key);
+
+    //get index of current value & increase by 1
+    optionState.options.forEach((selOption, index) => {
+      if (selOption == currentValue) {
+        newIndex = index + 1
+      }
+    });
+
+    let newOption = optionState.options[newIndex] || optionState.options[0]
+    if (newOption) {
+      this.onChange(avatarOption, newOption)
+    }
+  }
+
+  private changeLeft(e: any, avatarOption: Option) {
+    const { optionContext} = this.props;
+
+    const optionState = optionContext.getOptionState(avatarOption.key)!;
+    if (optionState.available <= 0) {
+      return
+    }
+
+    let newIndex = -1
+    let currentValue = optionContext.getValue(avatarOption.key);
+
+    //get index of current value & increase by 1
+    optionState.options.forEach((selOption, index) => {
+      if (selOption == currentValue) {
+        newIndex = index - 1
+      }
+    });
+
+    let newOption = optionState.options[newIndex] || optionState.options[optionState.options.length - 1]
+    if (newOption) {
+      this.onChange(avatarOption, newOption)
+    }
   }
 
   private onChange (option: Option, value: string) {
